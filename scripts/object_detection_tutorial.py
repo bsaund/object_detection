@@ -22,6 +22,19 @@ import time
 already_processing = False
 
 
+
+
+
+# List of the strings that is used to add correct label for each box.
+PATH_TO_LABELS = '/home/bradsaund/research/tensorflow_model_zoo/models/research/object_detection/data/mscoco_label_map.pbtxt'
+category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
+
+model_name = 'ssd_mobilenet_v1_coco_2017_11_17'
+
+LAST_HUMAN_TIME = time.time()
+GREET_DELAY_TIME_SEC = 60 * 10  # seconds
+
+
 def load_model(model_name):
     base_url = 'http://download.tensorflow.org/models/object_detection/'
     model_file = model_name + '.tar.gz'
@@ -35,23 +48,6 @@ def load_model(model_name):
     model = tf.saved_model.load(str(model_dir))
 
     return model
-
-
-# List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = '/home/bradsaund/research/tensorflow_model_zoo/models/research/object_detection/data/mscoco_label_map.pbtxt'
-category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
-
-# If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-PATH_TO_TEST_IMAGES_DIR = pathlib.Path(
-    '/home/bradsaund/research/tensorflow_model_zoo/models/research/object_detection/test_images')
-TEST_IMAGE_PATHS = sorted(list(PATH_TO_TEST_IMAGES_DIR.glob("*.jpg")))
-print(TEST_IMAGE_PATHS)
-
-model_name = 'ssd_mobilenet_v1_coco_2017_11_17'
-detection_model = load_model(model_name)
-
-LAST_HUMAN_TIME = time.time()
-GREET_DELAY_TIME_SEC = 60 * 10  # seconds
 
 
 def run_inference_for_single_image(model, image):
@@ -107,9 +103,6 @@ def show_inference(model, image_path):
         line_thickness=8)
     Image.fromarray(image_np).show("Processed")
 
-
-# for image_path in TEST_IMAGE_PATHS:
-#     show_inference(detection_model, image_path)
 
 def greet_new_people(output_dict):
     global LAST_HUMAN_TIME
@@ -167,6 +160,7 @@ def img_callback(img_msg):
 
 if __name__ == "__main__":
     rospy.init_node("object_detection")
+    detection_model = load_model(model_name)
     talker.init()
     img_sub = rospy.Subscriber("/kinect2_victor_head/qhd/image_color/compressed", CompressedImage, img_callback,
                                queue_size=1)
