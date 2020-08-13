@@ -42,7 +42,8 @@ PATH_TO_LABELS = '/home/bradsaund/research/tensorflow_model_zoo/models/research/
 category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
 
 # If you want to test the code with your images, just add path to the images to the TEST_IMAGE_PATHS.
-PATH_TO_TEST_IMAGES_DIR = pathlib.Path('/home/bradsaund/research/tensorflow_model_zoo/models/research/object_detection/test_images')
+PATH_TO_TEST_IMAGES_DIR = pathlib.Path(
+    '/home/bradsaund/research/tensorflow_model_zoo/models/research/object_detection/test_images')
 TEST_IMAGE_PATHS = sorted(list(PATH_TO_TEST_IMAGES_DIR.glob("*.jpg")))
 print(TEST_IMAGE_PATHS)
 
@@ -50,7 +51,7 @@ model_name = 'ssd_mobilenet_v1_coco_2017_11_17'
 detection_model = load_model(model_name)
 
 LAST_HUMAN_TIME = time.time()
-GREET_DELAY_TIME_SEC = 60*10 # seconds
+GREET_DELAY_TIME_SEC = 60 * 10  # seconds
 
 
 def run_inference_for_single_image(model, image):
@@ -133,10 +134,19 @@ def is_person_in_image(output_dict):
 def img_callback(img_msg):
     global already_processing
     if already_processing:
+        print("skipping this call")
         return
-    already_processing=True
+
+    dt = (rospy.get_rostime() - img_msg.header.stamp)
+    delay = dt.secs + dt.nsecs*1e-9
+    if delay > 0.01:
+        # print("Too far behind, skipping this call")
+        return
+
+    already_processing = True
     decompressed = img_utils.decompress_img(img_msg)
     decompressed = cv2.flip(decompressed, 1)
+    t0 = time.time()
     output_dict = run_inference_for_single_image(detection_model, decompressed)
     vis_util.visualize_boxes_and_labels_on_image_array(
         decompressed,
@@ -147,11 +157,10 @@ def img_callback(img_msg):
         instance_masks=output_dict.get('detection_masks_reframed', None),
         use_normalized_coordinates=True,
         line_thickness=8)
-    # Image.fromarray(decompressed).show()
     img_msg.data = img_utils.compress_img(decompressed)
     marked_pub.publish(img_msg)
-
     greet_new_people(output_dict)
+    # print("Inference took {} seconds".format(time.time() - t0))
 
     already_processing = False
 
@@ -159,6 +168,7 @@ def img_callback(img_msg):
 if __name__ == "__main__":
     rospy.init_node("object_detection")
     talker.init()
-    img_sub = rospy.Subscriber("/kinect2_victor_head/qhd/image_color/compressed", CompressedImage, img_callback, queue_size=1)
+    img_sub = rospy.Subscriber("/kinect2_victor_head/qhd/image_color/compressed", CompressedImage, img_callback,
+                               queue_size=1)
     marked_pub = rospy.Publisher("/marked_image/compressed", CompressedImage, queue_size=1)
     rospy.spin()
