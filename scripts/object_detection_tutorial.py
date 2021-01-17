@@ -31,8 +31,9 @@ category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABE
 
 model_name = 'ssd_mobilenet_v1_coco_2017_11_17'
 
-LAST_HUMAN_TIME = time.time()
 GREET_DELAY_TIME_SEC = 60 * 10  # seconds
+LAST_HUMAN_TIME = time.time() - GREET_DELAY_TIME_SEC
+
 
 
 def load_model(model_name):
@@ -132,7 +133,7 @@ def img_callback(img_msg):
 
     dt = (rospy.get_rostime() - img_msg.header.stamp)
     delay = dt.secs + dt.nsecs*1e-9
-    if delay > 0.01:
+    if delay > 0.05:
         # print("Too far behind, skipping this call")
         return
 
